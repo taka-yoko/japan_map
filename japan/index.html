@@ -1,0 +1,50 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Japan map</title>
+  <script type="text/javascript" src="https://d3js.org/d3.v3.min.js"></script>
+  <script type="text/javascript" src="https://d3js.org/topojson.v1.min.js"></script>
+</head>
+<body>
+  <script>
+    var width = 800;
+    var height = 800;
+
+    // create SVG element
+    var svg = d3.select("body")
+        .append("svg")
+        .attr({
+          'width': width,
+          'height': height
+        });
+    
+    // draw map
+    draw();
+    
+    function draw(){
+      d3.json("data/japan.json", function(err, jpn){
+        var projection = d3.geo.mercator()
+          .center([137, 34])
+          .scale(1500)
+          .translate([width / 2, height / 2]);
+          
+        var path = d3.geo.path()
+          .projection(projection);
+
+        var features = topojson.feature(jpn, jpn.objects.japan).features;
+      
+        svg.selectAll(".japan")
+          .data(features)
+          .enter()
+          .append("path")
+          .attr("stroke", "black")
+          .attr("stroke-width", "0.5")
+          .attr("fill", '#fff4d5')
+          //.attr("fill", function(d, i){ return d3.hsl(360*i/features.length, 0.5, 0.5)})
+          .attr("d", path);
+      });
+    }
+  </script>
+</body>
+</html>
