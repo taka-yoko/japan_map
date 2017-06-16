@@ -5,12 +5,29 @@
   <title>Japan map</title>
   <script type="text/javascript" src="https://d3js.org/d3.v3.min.js"></script>
   <script type="text/javascript" src="https://d3js.org/topojson.v1.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.98.2/css/materialize.min.css">
+  <link rel="stylesheet" href="css/base.css" type="text/css" />
 </head>
 <body>
+  <div id="menu">
+    <ul>
+      <li id="spring"><a class="on waves-effect waves-light btn" href="#">春</a></li>
+      <li id="summer"><a class="waves-effect waves-light btn" href="#">夏</a></li>
+      <li id="summary"><a class="waves-effect waves-light btn" href="#">春・夏合計</a></li>
+    </ul>
+  </div>
+  <div id="loading"><img src="image/ajax-loader.gif"></div>
+  <span id="tooltip"></span>
   <script>
-    var width = 800;
-    var height = 800;
-
+    const width = 800;
+    const height = 800;
+    let init = true;
+    
+    // elements
+    const $tooltip = d3.select("#tooltip");
+    const $loading = d3.select("#loading");
+    const $item = d3.selectAll("#menu li");
+    
     // create SVG element
     var svg = d3.select("body")
         .append("svg")
@@ -18,33 +35,110 @@
           'width': width,
           'height': height
         });
-    
-    // draw map
-    draw();
-    
-    function draw(){
-      d3.json("data/japan.json", function(err, jpn){
-        var projection = d3.geo.mercator()
+    var projection = d3.geo.mercator()
           .center([137, 34])
           .scale(1500)
           .translate([width / 2, height / 2]);
-          
-        var path = d3.geo.path()
+    var path = d3.geo.path()
           .projection(projection);
-
-        var features = topojson.feature(jpn, jpn.objects.japan).features;
+          
+    // 色の範囲を指定
+    var color = d3.scale.quantize()
+    .range(["rgb(191,223,255)", 
+            "rgb(153,204,255)",
+            "rgb(115,185,253)",
+            "rgb(77,166,255)",
+            "rgb(38,147,255)",
+            "rgb(0,128,255)",
+            "rgb(0,109,217)",
+            "rgb(0,89,178)",
+            "rgb(0,70,140)",
+            "rgb(0,51,102)"]);
+    
+    // draw map
+    draw('spring');
+    
+    function draw(str){
+      $loading.style('display', 'block');
       
-        svg.selectAll(".japan")
-          .data(features)
-          .enter()
-          .append("path")
-          .attr("stroke", "black")
-          .attr("stroke-width", "0.5")
-          .attr("fill", '#fff4d5')
-          //.attr("fill", function(d, i){ return d3.hsl(360*i/features.length, 0.5, 0.5)})
-          .attr("d", path);
+      // get csv data
+      d3.csv("data/" + str + ".csv", function(err, data){
+        color.domain([
+          d3.min(data, function(d){
+            return Number(d.value);
+          }),
+          d3.max(data, function(d){
+            return Number(d.value);
+          })
+        ]);
+        
+        // get JSON data
+        d3.json("data/japan.json", function(err, jpn){
+          // coodiname JSON data and csv data 
+          for(let i=0; i<data.length; i++){
+            let dataPref = data[i].prefecture;
+            let dataValue = parseFloat(data[i].value);
+            for(let j=0; j<jpn.objects.japan.geometries.length; j++){
+              let jsonPref = jpn.objects.japan.geometries[j].properties.name_local;
+              if(dataPref == jsonPref){
+                jpn.objects.japan.geometries[j].properties.value = dataValue;
+                break;
+              }
+            }
+          }
+        
+          let features = topojson.feature(jpn, jpn.objects.japan).features;
+          let map = svg.selectAll("path")
+                      .data(features);
+        
+          if(init){
+            map.enter()
+            .append("path")
+            .attr("stroke", "black")
+            .attr("stroke-width", "0.5")
+            .attr("fill", '#fff4d5')
+            .attr("d", path)
+            .on("mouseover", function(d){
+              return $tooltip
+                  .style("visibility", "visible")
+                  .text(d.properties.name_local + "の優勝回数 : " + d.properties.value + "回");
+            })
+            .on("mousemove", function(d){
+              return $tooltip
+                .style("top", (event.pageY - 20) + "px")
+                .style("left", (event.pageX + 10) + "px");
+            })
+            .on("mouseout", function(d){
+              return $tooltip
+                .style("visibility", "hidden");
+            });
+            init = false;
+          }
+          
+          map.transition()
+            .duration(400)
+            .style("fill", function(d){
+              $loading.style("display", "none");
+              const value = d.properties.value;
+              if(value){
+                return color(value);
+              }else{
+                return "#fff4d5";
+              }
+            });
+        });
       });
     }
+    
+    // add click event
+    $item.each(function(d, i){
+      const $this = d3.select(this);
+      $this.on("click", function(){
+        $item.select("a").classed('on', false);
+        $this.select("a").classed('on', true);
+        draw($this.attr("id"));
+      });
+    });
   </script>
 </body>
 </html>
