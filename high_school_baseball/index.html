@@ -2,13 +2,14 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Japan map</title>
+  <title>県別甲子園優勝回数</title>
   <script type="text/javascript" src="https://d3js.org/d3.v3.min.js"></script>
   <script type="text/javascript" src="https://d3js.org/topojson.v1.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.98.2/css/materialize.min.css">
   <link rel="stylesheet" href="css/base.css" type="text/css" />
 </head>
 <body>
+  <h1>県別甲子園優勝回数</h1>
   <div id="menu">
     <ul>
       <li id="spring"><a class="on waves-effect waves-light btn" href="#">春</a></li>
@@ -16,18 +17,18 @@
       <li id="summary"><a class="waves-effect waves-light btn" href="#">春・夏合計</a></li>
     </ul>
   </div>
-  <div id="loading"><img src="image/ajax-loader.gif"></div>
+  <div id="loading"><img src="image/loading.gif"></div>
   <span id="tooltip"></span>
   <script>
     const width = 800;
     const height = 800;
     let init = true;
-    
+
     // elements
     const $tooltip = d3.select("#tooltip");
     const $loading = d3.select("#loading");
     const $item = d3.selectAll("#menu li");
-    
+
     // create SVG element
     var svg = d3.select("body")
         .append("svg")
@@ -41,10 +42,10 @@
           .translate([width / 2, height / 2]);
     var path = d3.geo.path()
           .projection(projection);
-          
+
     // 色の範囲を指定
     var color = d3.scale.quantize()
-    .range(["rgb(191,223,255)", 
+    .range(["rgb(191,223,255)",
             "rgb(153,204,255)",
             "rgb(115,185,253)",
             "rgb(77,166,255)",
@@ -54,13 +55,13 @@
             "rgb(0,89,178)",
             "rgb(0,70,140)",
             "rgb(0,51,102)"]);
-    
+
     // draw map
     draw('spring');
-    
+
     function draw(str){
       $loading.style('display', 'block');
-      
+
       // get csv data
       d3.csv("data/" + str + ".csv", function(err, data){
         color.domain([
@@ -71,10 +72,10 @@
             return Number(d.value);
           })
         ]);
-        
+
         // get JSON data
         d3.json("data/japan.json", function(err, jpn){
-          // coodiname JSON data and csv data 
+          // coodiname JSON data and csv data
           for(let i=0; i<data.length; i++){
             let dataPref = data[i].prefecture;
             let dataValue = parseFloat(data[i].value);
@@ -86,11 +87,11 @@
               }
             }
           }
-        
+
           let features = topojson.feature(jpn, jpn.objects.japan).features;
           let map = svg.selectAll("path")
                       .data(features);
-        
+
           if(init){
             map.enter()
             .append("path")
@@ -114,7 +115,7 @@
             });
             init = false;
           }
-          
+
           map.transition()
             .duration(400)
             .style("fill", function(d){
@@ -129,7 +130,7 @@
         });
       });
     }
-    
+
     // add click event
     $item.each(function(d, i){
       const $this = d3.select(this);
